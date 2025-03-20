@@ -2,9 +2,6 @@ import { getLocalStorage } from "./utils.mjs";
 
 function renderCartContents() {
   const cartItems = getLocalStorage("so-cart");
-  const htmlItems = cartItems.map((item) => cartItemTemplate(item));
-  document.querySelector(".product-list").innerHTML = htmlItems.join("");
-}
 
  // Vérifie si cartItems est un tableau avant d'appliquer .map()
  if (Array.isArray(cartItems)) {
@@ -13,6 +10,7 @@ function renderCartContents() {
 } else {
   // Si ce n'est pas un tableau, on peut afficher un message ou ne rien faire
   console.log('Aucun produit dans le panier');
+}
 }
 
 function cartItemTemplate(item) {
