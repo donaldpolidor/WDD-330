@@ -1,68 +1,47 @@
-import { getLocalStorage } from "./utils.mjs";
+import { getLocalStorage, setLocalStorage } from "./utils.mjs";
 
-// Sélectionne l'élément HTML où afficher les détails
-const productContainer = document.querySelector(".product-detail");
+export default class ProductDetails {
 
-// Fonction pour récupérer un produit depuis l'API ou localStorage
-async function getProductDetails(productId) {
-  let products = getLocalStorage("so-cart");
-
-  // Si le produit n'est pas dans localStorage, essayer de le récupérer via API
-  if (!products) {
-    try {
-      const response = await fetch("./json/tents.json");
-      if (!response.ok) throw new Error("Erreur de chargement des produits");
-      products = await response.json();
-    } catch (error) {
-      console.error("Erreur lors de la récupération du produit :", error);
-      return null;
-    }
+  constructor(productId, dataSource) {
+    this.productId = productId;
+    this.product = {};
+    this.dataSource = dataSource;
   }
 
-  return products.find((product) => product.id == productId);
-}
-
-// Fonction pour afficher les détails du produit
-async function renderProductDetails() {
-  const params = new URLSearchParams(window.location.search);
-  const productId = params.get("id"); // Récupère l'ID depuis l'URL
-
-  if (!productId) {
-    productContainer.innerHTML = "<p>Aucun produit sélectionné.</p>";
-    return;
+  async init() {
+    // use the datasource to get the details for the current product. findProductById will return a promise! use await or .then() to process it
+    this.product = await this.dataSource.findProductById(this.productId);
+    // the product details are needed before rendering the HTML
+    this.renderProductDetails();
+    // once the HTML is rendered, add a listener to the Add to Cart button
+    // Notice the .bind(this). This callback will not work if the bind(this) is missing. Review the readings from this week on 'this' to understand why.
+    document
+      .getElementById('addToCart')
+      .addEventListener('click', this.addProductToCart.bind(this));
   }
 
-  const product = await getProductDetails(productId);
-
-  if (!product) {
-    productContainer.innerHTML = "<p>Produit introuvable.</p>";
-    return;
+  addProductToCart() {
+    const cartItems = getLocalStorage("so-cart") || [];
+    cartItems.push(this.product);
+    setLocalStorage("so-cart", cartItems);
   }
 
-  // Insère les détails du produit dans le HTML
-  productContainer.innerHTML = `
-    <div class="product-card">
-      <img src="${product.Image}" alt="${product.Name}" class="product-image">
-      <h2>${product.Name}</h2>
-      <p class="product-description">${product.Description || "Description non disponible."}</p>
-      <p class="product-price">$${product.FinalPrice}</p>
-      <button class="add-to-cart" data-id="${product.id}">Ajouter au panier</button>
-    </div>
-  `;
-
-  // Ajouter un événement pour le bouton "Ajouter au panier"
-  document.querySelector(".add-to-cart").addEventListener("click", () => {
-    addToCart(product);
-  });
+  renderProductDetails() {
+    productDetailsTemplate(this.product);
+  }
 }
 
-// Fonction pour ajouter un produit au panier
-function addToCart(product) {
-  let cart = getLocalStorage("so-cart") || [];
-  cart.push(product);
-  localStorage.setItem("so-cart", JSON.stringify(cart));
-  alert(`${product.Name} a été ajouté au panier !`);
-}
+function productDetailsTemplate(product) {
+  document.querySelector('h2').textContent = product.Brand.Name;
+  document.querySelector('h3').textContent = product.NameWithoutBrand;
 
-// Exécuter le rendu des détails du produit au chargement de la page
-renderProductDetails();
+  const productImage = document.getElementById('productImage');
+  productImage.src = product.Image;
+  productImage.alt = product.NameWithoutBrand;
+
+  document.getElementById('productPrice').textContent = product.FinalPrice;
+  document.getElementById('productColor').textContent = product.Colors[0].ColorName;
+  document.getElementById('productDesc').innerHTML = product.DescriptionHtmlSimple;
+
+  document.getElementById('addToCart').dataset.id = product.Id;
+}
