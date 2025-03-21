@@ -16,3 +16,7 @@ async function addToCartHandler(e) {
 document
   .getElementById("addToCart")
   .addEventListener("click", addToCartHandler);
+
+  const product = getParam('product');
+  console.log(product); // Display the value of the 'product' parameter if present in the URL
+  
